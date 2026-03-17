@@ -2,13 +2,13 @@ from fastapi import APIRouter
 
 from app.schemas.comments import CommentCreate, CommentOutID, CommentUpdate
 from app.services.comments import CommentService
-from app.api.dependencies import DBDep, MongoDep, PaginationDep
+from app.api.dependencies import DBDep, MongoDep, PaginationDep, RedisDep
 
 router = APIRouter(prefix="/comments", tags=["Отзывы"])
 
 @router.post("")
-async def create_comment(data: CommentCreate, mongo: MongoDep, dbDep: DBDep):
-    return await CommentService(dbDep, mongo).add(data)
+async def create_comment(data: CommentCreate, mongo: MongoDep, dbDep: DBDep, redis: RedisDep):
+    return await CommentService(dbDep, mongo, redis).add(data)
 
 @router.get("")
 async def get_comments(mongo: MongoDep, pagDep: PaginationDep):

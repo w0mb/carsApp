@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Популярные автомобили</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>CarsApp</h1>
+      <nav>
+        <ul>
+          <li><a href="/">Главная</a></li>
+          <li><a href="/search">Поиск</a></li>
+          <li><a class="active" href="/popular">Популярные</a></li>
+          <li><a href="/cars/new">Добавить авто</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="page-header">
+        <h2>Популярные автомобили</h2>
+        <a class="btn btn-secondary" href="/">Назад</a>
+      </div>
+
+      <div id="list" class="results"></div>
+    </div>
+  </main>
+
+  <script>
+    const API_URL = "http://localhost:8000/api";
+
+    async function loadPopular() {
+      const res = await fetch(`${API_URL}/popular?limit=10`);
+      const data = await res.json();
+      render(data);
+    }
+
+    function render(items) {
+      const container = document.getElementById("list");
+      container.innerHTML = "";
+
+      if (!items.length) {
+        container.innerHTML = "<p>Пока нет данных о просмотрах.</p>";
+        return;
+      }
+
+      items.forEach((car) => {
+        const div = document.createElement("div");
+        div.className = "card";
+        div.innerHTML = `
+          <h3>${car.brand} ${car.name}</h3>
+          <p>Цена: ${car.price}</p>
+          <p>Просмотры: ${car.views}</p>
+          <a href="/cars/${car.id}">Подробнее</a>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    loadPopular();
+  </script>
+</body>
+</html>
+

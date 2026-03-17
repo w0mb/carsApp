@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Поиск</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <h1>CarsApp</h1>
+        <nav>
+            <ul>
+                <li><a href="/">Главная</a></li>
+                <li><a class="active" href="/search">Поиск</a></li>
+                <li><a href="/popular">Популярные</a></li>
+                <li><a href="/cars/new">Добавить авто</a></li>
+            </ul>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <div class="container">
+        <div class="page-header">
+            <h2>Поиск автомобилей</h2>
+            <a class="btn btn-secondary" href="/">Назад</a>
+        </div>
+
+        <div class="panel">
+            <form id="search-form" class="simple-form">
+                <div class="form-row">
+                    <input type="text" id="name" placeholder="Название" />
+                    <input type="number" id="rating" min="1" max="5" placeholder="Мин. рейтинг" />
+                    <button class="btn btn-primary" type="submit">Искать</button>
+                </div>
+            </form>
+        </div>
+
+        <h3 class="section-title">Результаты</h3>
+        <div id="results" class="results"></div>
+    </div>
+</main>
+
+<script>
+const API_URL = "http://localhost:8000/api";
+
+document.getElementById("search-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const name = document.getElementById("name").value;
+    const rating = document.getElementById("rating").value;
+
+    if (!name && !rating) {
+        alert("Введите параметры поиска");
+        return;
+    }
+
+    const params = new URLSearchParams();
+    if (name) params.append("name", name);
+    if (rating) params.append("min_rating", rating);
+
+    const res = await fetch(`${API_URL}/search?${params.toString()}`);
+    const data = await res.json();
+
+    renderResults(data);
+});
+
+function renderResults(cars) {
+    const container = document.getElementById("results");
+    container.innerHTML = "";
+
+    if (cars.message) {
+        container.innerHTML = `<p>${cars.message}</p>`;
+        return;
+    }
+
+    if (!cars.length) {
+        container.innerHTML = "<p>Ничего не найдено</p>";
+        return;
+    }
+
+    cars.forEach(car => {
+        const rating = car.avg_rating ?? 0;
+
+        const div = document.createElement("div");
+        div.innerHTML = `
+            <h3>${car.name}</h3>
+            <p>Цена: ${car.price}</p>
+            <p>Рейтинг: ${rating ? rating.toFixed(1) : "Нет оценок"}</p>
+            <a href="/cars/${car.id}">Подробнее</a>
+            <hr>
+        `;
+
+        container.appendChild(div);
+    });
+}
+</script>
+
+</body>
+</html>

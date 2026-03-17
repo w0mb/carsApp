@@ -7,7 +7,14 @@ from app.services.cars import CarsService
 class CommentService(BaseService):
     async def add(self, data: CommentCreate):
         if await CarsService(self.db).get_car_by_id(data.product_id):
-            return await self.mongo_db.comments.add(data)
+            created = await self.mongo_db.comments.add(data)
+            # Инвалидируем кеш среднего рейтинга для авто, т.к. появился новый отзыв
+            if self.redis:
+                try:
+                    await self.redis.delete(CarsService._avg_rating_key(data.product_id))
+                except Exception:
+                    pass
+            return created
         return {"error": "Машины с таким id нет"}
 
     async def get_all_filtered(self, limit: int, offset: int):

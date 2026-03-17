@@ -18,11 +18,14 @@ class BaseRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_filtered(self, limit, offset, *filter, **filter_by) -> list[BaseModel | Any]:
+    async def get_filtered(self, limit: int | None = None, offset: int | None = None, *filter, **filter_by) -> list[BaseModel | Any]:
         query = select(self.model).filter(*filter).filter_by(**filter_by)
-        query = query.limit(limit).offset(offset)
+        if limit or offset:
+            query = query.limit(limit).offset(offset)
+
         result = await self.session.execute(query)
         return [self.mapper.map_to_domain_entity(model) for model in result.scalars().all()]
+
 
     async def get_all(self, *args, **kwargs) -> list[BaseModel | Any]:
         return await self.get_filtered()

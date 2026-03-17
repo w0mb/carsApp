@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Автомобиль</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <h1>CarsApp</h1>
+        <nav>
+            <ul>
+                <li><a href="/">Главная</a></li>
+                <li><a href="/search">Поиск</a></li>
+                <li><a href="/popular">Популярные</a></li>
+                <li><a href="/cars/new">Добавить авто</a></li>
+            </ul>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <div class="container car-detail-container">
+        <div class="car-detail-header">
+            <h2 id="title"></h2>
+            <a class="btn btn-secondary" href="/">Назад</a>
+        </div>
+
+        <div class="car-detail-card">
+            <div class="car-detail-info">
+                <p id="description"></p>
+                <p id="price" class="price"></p>
+                <p id="stock" class="stock"></p>
+            </div>
+        </div>
+
+        <section class="reviews-section">
+            <h3>Отзывы</h3>
+            <div id="comments" class="reviews-list"></div>
+
+            <div class="add-review-form">
+                <h4>Добавить отзыв</h4>
+                <form id="comment-form" class="simple-form">
+                    <div class="form-group">
+                        <label for="author">Автор</label>
+                        <input type="text" id="author" placeholder="Автор (необязательно)" />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="text">Текст</label>
+                        <textarea id="text" placeholder="Текст отзыва" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="rating">Оценка</label>
+                        <select id="rating">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-primary" type="submit">Отправить</button>
+                </form>
+            </div>
+        </section>
+    </div>
+</main>
+
+<script>
+const API_URL = "http://localhost:8000/api";
+
+const pathParts = window.location.pathname.split("/");
+const carId = pathParts[pathParts.length - 1];
+
+async function loadCar() {
+    const res = await fetch(`${API_URL}/cars/${carId}`);
+    const car = await res.json();
+
+    document.getElementById("title").textContent = `${car.brand} ${car.name}`;
+    document.getElementById("description").textContent = car.description;
+    document.getElementById("price").textContent = "Цена: " + car.price;
+    document.getElementById("stock").textContent = "Остаток: " + car.stock;
+
+    renderComments(car.comments || []);
+}
+
+function renderComments(comments) {
+    const container = document.getElementById("comments");
+    container.innerHTML = "";
+
+    if (!comments.length) {
+        container.innerHTML = "<p>Нет отзывов</p>";
+        return;
+    }
+
+    comments.forEach(c => {
+        const div = document.createElement("div");
+        div.className = "review-card";
+        div.innerHTML = `
+            <div class="review-header">
+                <span class="review-author">${c.author || "Аноним"}</span>
+                <span class="review-rating">★ ${c.rating}/5</span>
+            </div>
+            <div class="review-text">${c.text}</div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+document.getElementById("comment-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+const authorInput = document.getElementById("author").value.trim();
+
+await fetch(`${API_URL}/comments`, {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+        product_id: Number(carId),
+        author: authorInput ? authorInput : "Аноним",
+        text: document.getElementById("text").value,
+        rating: Number(document.getElementById("rating").value)
+    })
+});
+
+    location.reload();
+});
+
+loadCar();
+</script>
+
+</body>
+</html>

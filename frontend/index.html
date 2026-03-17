@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Автомобили</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<header>
+    <div class="container">
+        <h1>CarsApp</h1>
+        <nav>
+            <ul>
+                <li><a class="active" href="/">Главная</a></li>
+                <li><a href="/search">Поиск</a></li>
+                <li><a href="/popular">Популярные</a></li>
+                <li><a href="/cars/new">Добавить авто</a></li>
+            </ul>
+        </nav>
+    </div>
+</header>
+
+<main>
+    <div class="container">
+        <div class="page-header">
+            <h2>Список автомобилей</h2>
+        </div>
+
+        <div id="cars" class="cars"></div>
+
+        <div class="pagination">
+            <button class="page-btn" onclick="prevPage()">Назад</button>
+            <span id="page-info" class="page-indicator"></span>
+            <button class="page-btn" onclick="nextPage()">Вперед</button>
+        </div>
+    </div>
+</main>
+
+<script src="js/main.js"></script>
+</body>
+</html>

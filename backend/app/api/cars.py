@@ -1,8 +1,8 @@
 from datetime import date
 
-from fastapi import APIRouter, Query, Body, HTTPException
+from fastapi import APIRouter, Query, Body, HTTPException, Response
 
-from app.api.dependencies import DBDep, MongoDep, PaginationDep
+from app.api.dependencies import DBDep, MongoDep, PaginationDep, RedisDep
 from app.services.cars import CarsService
 from app.schemas.cars import CarsAdd, CarsGet, CarsPatch
 from app.services.comments import CommentService
@@ -14,29 +14,49 @@ router = APIRouter(
 @router.post("/new")
 async def create_car(db: DBDep, data: CarsAdd = Body(...)):
     return await CarsService(db).add_car(data)
+
 @router.get("")
 async def get_all_cars(
     pagination: PaginationDep,
+    response: Response,
     db: DBDep,
     mongo: MongoDep,
+    redis: RedisDep,
     name: str | None = Query(None, description="Название автомобиля для поиска"),
     rating: float | None = Query(None, description="Рейтинг автомобиля для поиска")
 ):
+    
+    limit = pagination.per_page if pagination else None
+    offset = pagination.page if pagination else None
 
-    return await CarsService(db, mongo).get_all_filtered(
-        pagination.per_page,
-        pagination.page,
+    cars = await CarsService(db, mongo, redis).get_all_filtered(
+        limit,
+        offset,
         name,
+        rating
     )
+    print(len(cars))
+    response.headers["X-Total-Count"] = str(len(cars))
+    return cars
 
 @router.get("/{car_id}")
 async def get_one_car_by_id(
     car_id: int,
     db: DBDep,
-    mongo: MongoDep
+    mongo: MongoDep,
+    redis: RedisDep,
 ):
     car = await CarsService(db).get_car_by_id(car_id)
-    comments = await CommentService(mongo_db=mongo).get_comment_by_car_id(car_id)
+    comments = await CommentService(mongo_db=mongo).get_comments_by_car_id(car_id)
+
+    # Просмотры: увеличиваем счётчик и обновляем sorted set популярных
+    if redis:
+        try:
+            await redis.incr(f"car:{car_id}:views", 1)
+            await redis.zincrby("popular:cars", 1, str(car_id))
+        except Exception:
+            pass
+
     res = CarsGet(
     id=car.id,
     name=car.name,
