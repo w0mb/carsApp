@@ -1,7 +1,7 @@
 const API_URL = "http://localhost:8000/api"; // поменяй если нужно
 
 let currentPage = 1;
-const perPage = 2;
+const perPage = 6;
 let totalCount = 0;
 
 async function loadCars() {

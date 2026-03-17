@@ -86,12 +86,12 @@ function renderResults(cars) {
         const rating = car.avg_rating ?? 0;
 
         const div = document.createElement("div");
+        div.className = "card";
         div.innerHTML = `
             <h3>${car.name}</h3>
             <p>Цена: ${car.price}</p>
             <p>Рейтинг: ${rating ? rating.toFixed(1) : "Нет оценок"}</p>
             <a href="/cars/${car.id}">Подробнее</a>
-            <hr>
         `;
 
         container.appendChild(div);

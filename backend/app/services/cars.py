@@ -1,6 +1,7 @@
 from app.services.base import BaseService
 from app.schemas.cars import Cars, CarsAdd, CarsPatch
 from app.models.comments import Comments
+from app.models.cars import CarsOrm
 
 class CarsService(BaseService):
     AVG_RATING_TTL_SECONDS = 3600
@@ -95,17 +96,15 @@ class CarsService(BaseService):
         name: str | None = None,
         min_rating: float | None = None
     ):
-        if limit and offset:
-            if name:
-                cars = await self.db.cars.get_filtered(
-                    limit=limit,
-                    offset=limit * (offset - 1),
-                    name=name
-                )
-            else:
-                cars = await self.db.cars.get_filtered(limit=limit, offset=limit * (offset - 1))
-        else:
-            cars = await self.db.cars.get_all()
+        filters = []
+        if name:
+            # По заданию — поиск по названию. Делаем contains + case-insensitive.
+            filters.append(CarsOrm.name.ilike(f"%{name}%"))
+
+        sql_limit = limit if (limit and offset) else None
+        sql_offset = (limit * (offset - 1)) if (limit and offset) else None
+
+        cars = await self.db.cars.get_filtered(sql_limit, sql_offset, *filters)
 
         car_ids = [car.id for car in cars]
         avg_ratings = await self._get_avg_ratings_cached(car_ids)
