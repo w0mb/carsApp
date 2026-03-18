@@ -1,8 +1,22 @@
-const API_URL = "http://localhost:8000/api"; // поменяй если нужно
+const API_URL = "http://localhost:8000/api";
 
-let currentPage = 1;
 const perPage = 6;
 let totalCount = 0;
+let currentPage = 1;
+
+function getPageFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get("page");
+  const page = raw ? Number(raw) : 1;
+  return Number.isFinite(page) && page >= 1 ? page : 1;
+}
+
+function setPageInUrl(page) {
+  const params = new URLSearchParams(window.location.search);
+  params.set("page", String(page));
+  const next = `${window.location.pathname}?${params.toString()}`;
+  window.history.replaceState({}, "", next);
+}
 
 async function loadCars() {
     try {
@@ -14,7 +28,6 @@ async function loadCars() {
         );
         const data = await response.json();
 
-        // общее количество
         totalCount = parseInt(response_count.headers.get("X-Total-Count")) || 0;
 
         renderCars(data);
@@ -40,9 +53,10 @@ function renderCars(cars) {
 
         div.innerHTML = `
             <h3>${car.name}</h3>
+            <p>${car.brand}</p>
             <p>💰 Цена: ${car.price}</p>
             <p>📦 Остаток: ${car.stock}</p>
-            <a href="/cars/${car.id}">Подробнее</a>
+            <a href="/cars/${car.id}?page=${currentPage}">Подробнее</a>
         `;
 
         container.appendChild(div);
@@ -61,6 +75,7 @@ function nextPage() {
 
     if (currentPage < totalPages) {
         currentPage++;
+        setPageInUrl(currentPage);
         loadCars();
     }
 }
@@ -68,9 +83,11 @@ function nextPage() {
 function prevPage() {
     if (currentPage > 1) {
         currentPage--;
+        setPageInUrl(currentPage);
         loadCars();
     }
 }
 
-// загрузка при старте
+currentPage = getPageFromUrl();
+setPageInUrl(currentPage);
 loadCars();

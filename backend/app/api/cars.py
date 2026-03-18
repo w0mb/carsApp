@@ -35,7 +35,6 @@ async def get_all_cars(
         name,
         rating
     )
-    print(len(cars))
     response.headers["X-Total-Count"] = str(len(cars))
     return cars
 
@@ -49,7 +48,6 @@ async def get_one_car_by_id(
     car = await CarsService(db).get_car_by_id(car_id)
     comments = await CommentService(mongo_db=mongo).get_comments_by_car_id(car_id)
 
-    # Просмотры: увеличиваем счётчик и обновляем sorted set популярных
     if redis:
         try:
             await redis.incr(f"car:{car_id}:views", 1)

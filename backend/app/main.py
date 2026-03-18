@@ -17,7 +17,11 @@ from mongodb import connect, close
 from app.init import redis_manager
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+logging.getLogger("motor").setLevel(logging.INFO)
+logging.getLogger("pymongo").setLevel(logging.INFO)
+logging.getLogger("beanie").setLevel(logging.INFO)
 
 
 @asynccontextmanager
@@ -62,7 +66,6 @@ async def custom_swagger_ui_html():
 app.include_router(api_router, prefix="/api")
 
 frontend_path = Path(__file__).parent.parent.parent / "frontend"
-print(f"путь  {frontend_path}")
 
 app.mount("/css", StaticFiles(directory=str(frontend_path / "css")), name="css")
 app.mount("/js", StaticFiles(directory=str(frontend_path / "js")), name="js")

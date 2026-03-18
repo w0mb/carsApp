@@ -89,6 +89,7 @@ function renderResults(cars) {
         div.className = "card";
         div.innerHTML = `
             <h3>${car.name}</h3>
+            <p>${car.brand}</p>
             <p>Цена: ${car.price}</p>
             <p>Рейтинг: ${rating ? rating.toFixed(1) : "Нет оценок"}</p>
             <a href="/cars/${car.id}">Подробнее</a>

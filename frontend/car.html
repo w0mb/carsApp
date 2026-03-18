@@ -25,8 +25,11 @@
 <main>
     <div class="container car-detail-container">
         <div class="car-detail-header">
-            <h2 id="title"></h2>
-            <a class="btn btn-secondary" href="/">Назад</a>
+            <div>
+                <h2 id="title"></h2>
+                <div id="brand" class="muted"></div>
+            </div>
+            <a id="back-link" class="btn btn-secondary" href="/">Назад</a>
         </div>
 
         <div class="car-detail-card">
@@ -77,12 +80,16 @@ const API_URL = "http://localhost:8000/api";
 
 const pathParts = window.location.pathname.split("/");
 const carId = pathParts[pathParts.length - 1];
+const page = new URLSearchParams(window.location.search).get("page");
+const backLink = document.getElementById("back-link");
+backLink.href = page ? `/?page=${encodeURIComponent(page)}` : "/";
 
 async function loadCar() {
     const res = await fetch(`${API_URL}/cars/${carId}`);
     const car = await res.json();
 
-    document.getElementById("title").textContent = `${car.brand} ${car.name}`;
+    document.getElementById("title").textContent = car.name;
+    document.getElementById("brand").textContent = car.brand;
     document.getElementById("description").textContent = car.description;
     document.getElementById("price").textContent = "Цена: " + car.price;
     document.getElementById("stock").textContent = "Остаток: " + car.stock;

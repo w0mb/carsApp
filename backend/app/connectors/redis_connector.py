@@ -12,7 +12,6 @@ class RedisManager:
 
     async def connect(self):
         logging.info(f"Начинаю подключение к Redis host={self.host}, port={self.port}")
-        # decode_responses=False -> работаем с bytes, чтобы избежать сюрпризов с типами
         self._redis = redis.Redis(host=self.host, port=self.port, decode_responses=False)
         logging.info(f"Успешное подключение к Redis host={self.host}, port={self.port}")
 
@@ -40,18 +39,8 @@ class RedisManager:
         return float(await self._redis.zincrby(key, amount, member))
 
     async def zrevrange_withscores(self, key: str, start: int, stop: int):
-        # Возвращает list[tuple[member(bytes), score(float)]]
         return await self._redis.zrevrange(key, start, stop, withscores=True)
 
     async def close(self):
         if self._redis:
             await self._redis.close()
-
-
-# Пример использования:
-# redis_manager = RedisManager(redis_url="redis://localhost")
-# await redis_manager.connect()
-# await redis_manager.set("key", "value", expire=60)
-# value = await redis_manager.get("key")
-# await redis_manager.delete("key")
-# await redis_manager.close()

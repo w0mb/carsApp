@@ -11,6 +11,12 @@ body {
     background-color: #f4f4f4;
 }
 
+.muted {
+    color: #6c757d;
+    font-size: 0.95rem;
+    margin-top: 0.25rem;
+}
+
 a {
     color: inherit;
 }

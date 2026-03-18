@@ -2,23 +2,20 @@ from app.services.base import BaseService
 from app.schemas.cars import Cars, CarsAdd, CarsPatch
 from app.models.comments import Comments
 from app.models.cars import CarsOrm
+import logging
 
 class CarsService(BaseService):
-    AVG_RATING_TTL_SECONDS = 3600
+    AVG_RATING_TTL_SECONDS = 10
+    _log = logging.getLogger("app.redis")
 
     @staticmethod
     def _avg_rating_key(car_id: int) -> str:
         return f"car:{car_id}:avg_rating"
 
     async def _get_avg_ratings_cached(self, car_ids: list[int]) -> dict[int, float]:
-        """
-        Возвращает {car_id: avg_rating} с приоритетом Redis.
-        Если в Redis нет ключа — считает агрегацией в MongoDB и кеширует на 1 час.
-        """
         if not car_ids:
             return {}
 
-        # Если Redis не передали — считаем только из Mongo
         if not self.redis:
             return await self._get_avg_ratings_from_mongo_and_defaults(car_ids)
 
@@ -26,7 +23,7 @@ class CarsService(BaseService):
         try:
             cached_values = await self.redis.mget(keys)
         except Exception:
-            # Redis недоступен -> fallback на Mongo (без кеша)
+            self._log.warning("avg_rating cache: redis mget failed, fallback to mongo")
             return await self._get_avg_ratings_from_mongo_and_defaults(car_ids)
 
         result: dict[int, float] = {}
@@ -43,27 +40,35 @@ class CarsService(BaseService):
             except Exception:
                 missing_ids.append(cid)
 
+        self._log.info(
+            "avg_rating cache: hit=%s miss=%s total=%s",
+            len(result),
+            len(missing_ids),
+            len(car_ids),
+        )
+
         if missing_ids:
             computed = await self._get_avg_ratings_from_mongo_and_defaults(missing_ids)
             for cid, avg in computed.items():
                 try:
                     await self.redis.set(self._avg_rating_key(cid), str(avg), expire=self.AVG_RATING_TTL_SECONDS)
+                    self._log.info(
+                        "avg_rating cache: set key=%s value=%s ttl=%s",
+                        self._avg_rating_key(cid),
+                        avg,
+                        self.AVG_RATING_TTL_SECONDS,
+                    )
                 except Exception:
-                    # Если Redis отвалился между mget и set — просто не кешируем
+                    self._log.warning("avg_rating cache: set failed key=%s", self._avg_rating_key(cid))
                     pass
             result.update(computed)
 
         return result
 
     async def _get_avg_ratings_from_mongo_and_defaults(self, car_ids: list[int]) -> dict[int, float]:
-        """
-        Одна агрегация в MongoDB для списка product_id.
-        Для авто без отзывов возвращает 0.
-        """
         if not car_ids:
             return {}
 
-        # Защита: если Mongo не передали, просто вернём нули
         if not self.mongo_db:
             return {cid: 0.0 for cid in car_ids}
 
@@ -72,8 +77,6 @@ class CarsService(BaseService):
             {"$group": {"_id": "$product_id", "avg": {"$avg": "$rating"}}},
         ]
         computed: dict[int, float] = {}
-        # Через "чистый" Motor: в вашей версии связки beanie/motor
-        # beanie.AggregationQuery пытается await'ить aggregate(), что падает.
         coll = Comments.get_pymongo_collection()
         cursor = coll.aggregate(pipeline)
         docs = await cursor.to_list(length=None)
@@ -83,7 +86,6 @@ class CarsService(BaseService):
             except Exception:
                 continue
 
-        # Заполняем отсутствующие нулями
         for cid in car_ids:
             computed.setdefault(cid, 0.0)
 
@@ -119,8 +121,7 @@ class CarsService(BaseService):
             result.append(car_dict)
 
         return result
-    # async def get_all(self, limit, offset):
-    #     return await self.db.cars.get_all(limit, offset)
+
     async def get_car_by_id(self, id):
         return await self.db.cars.get_one_or_none(id=id)
     async def update_car(self, car_id: int, data: CarsPatch):

@@ -1,17 +1,19 @@
-
 from app.schemas.comments import CommentCreate, CommentOutID, CommentUpdate
 
 from app.services.base import BaseService
 from app.services.cars import CarsService
+import logging
 
 class CommentService(BaseService):
+    _log = logging.getLogger("app.redis")
+
     async def add(self, data: CommentCreate):
         if await CarsService(self.db).get_car_by_id(data.product_id):
             created = await self.mongo_db.comments.add(data)
-            # Инвалидируем кеш среднего рейтинга для авто, т.к. появился новый отзыв
             if self.redis:
                 try:
                     await self.redis.delete(CarsService._avg_rating_key(data.product_id))
+                    self._log.info("avg_rating cache: delete key=%s", CarsService._avg_rating_key(data.product_id))
                 except Exception:
                     pass
             return created
@@ -37,13 +39,11 @@ class CommentService(BaseService):
         await self.mongo_db.comments.delete(_id=comment_id)
         return {"success": True}
     async def get_all_with_id(self, limit: int, offset: int):
-        # Получаем raw объекты из Mongo
         entities = await self.mongo_db.comments.model.find().skip(offset).limit(limit).to_list()
 
-        # Мапим вручную в CommentOutID
         result = [
             CommentOutID(
-                _id=str(e.id),  # ObjectId -> str
+                _id=str(e.id),
                 product_id=e.product_id,
                 author=e.author,
                 text=e.text,
